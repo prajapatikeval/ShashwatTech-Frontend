@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Mail, Phone, Send, Loader2 } from "lucide-react";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { toast } from "@/hooks/use-toast";
+import emailjs from "@emailjs/browser";
 
 /* =========================
    Frontend-only schema
@@ -39,23 +40,64 @@ export default function Contact() {
   });
 
   const [isPending, setIsPending] = useState(false);
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsPending(true);
-    // const { toast } = useToast();
+  setIsPending(true);
 
-    // Frontend-only submit (no backend)
-    console.log("Contact form submitted:", values);
-
-    setTimeout(() => {
-      setIsPending(false);
-      form.reset();
-      toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We will get back to you shortly.",
-      });
-    }, 1000);
+  try {
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      {
+        name: values.name,
+        email: values.email,
+        message: values.message,
+      },
+      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+    );
+    // 2️⃣ Send THANK-YOU email to USER (NO message)
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_USER_TEMPLATE_ID,
+      {
+        name: values.name,
+        email: values.email,
+      },
+      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+    );
+    
+    form.reset();
+    toast({
+      title: "Message Sent!",
+      description: "Thank you for contacting us. We will get back to you shortly.",
+    });
+  } catch (error) {
+    console.error("EmailJS Error:", error);
+    toast({
+      title: "Something went wrong",
+      description: "Failed to send message. Please try again later.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsPending(false);
   }
+}
+
+  // async function onSubmit(values: z.infer<typeof formSchema>) {
+  //   setIsPending(true);
+  //   // const { toast } = useToast();
+
+  //   // Frontend-only submit (no backend)
+  //   console.log("Contact form submitted:", values);
+
+  //   setTimeout(() => {
+  //     setIsPending(false);
+  //     form.reset();
+  //     toast({
+  //       title: "Message Sent!",
+  //       description: "Thank you for contacting us. We will get back to you shortly.",
+  //     });
+  //   }, 1000);
+  // }
 
   return (
     <div className="pt-24 pb-16">
